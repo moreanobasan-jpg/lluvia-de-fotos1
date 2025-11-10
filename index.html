@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Para mi persona favorita — Lluvia de recuerdos</title>
+  <!-- Tip: coloca las fotos en la carpeta "images/" junto al archivo HTML con los nombres indicados abajo. -->
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Raleway:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    :root{ --bg:#0f1226; --card:#fff; --accent:#ff6b9a }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Raleway,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
+    body{background: radial-gradient(1200px 600px at 10% 10%, rgba(255,105,180,0.06), transparent), linear-gradient(180deg,#fdf6f9 0%, #fff 100%); overflow:hidden}
+
+    /* Modal / cuadro inicial */
+    .intro-wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{width:min(880px,95%);background:linear-gradient(180deg,rgba(255,255,255,0.98),#fff);border-radius:18px;box-shadow:0 20px 50px rgba(10,10,25,0.2);padding:36px;display:flex;gap:24px;align-items:center}
+    .card .left{flex:1}
+    .card h1{font-family:'Great Vibes',cursive;font-size:44px;margin:0;color:var(--accent);text-shadow:0 2px 0 rgba(0,0,0,0.06)}
+    .card p{color:#222;margin-top:12px;font-size:18px;line-height:1.5}
+    .card .actions{margin-top:18px}
+    .btn{background:var(--accent);color:white;padding:12px 20px;border-radius:10px;border:0;font-weight:700;cursor:pointer;box-shadow:0 8px 18px rgba(255,107,154,0.18)}
+    .sub{font-size:13px;color:#666;margin-top:8px}
+
+    /* Area donde caerán las fotos */
+    .stage{position:absolute;inset:0;pointer-events:none}
+    .falling{position:absolute;will-change:transform,opacity}
+    .photo{width:120px;height:90px;object-fit:cover;border-radius:10px;box-shadow:0 8px 20px rgba(10,10,25,0.3);border:3px solid rgba(255,255,255,0.6)}
+    .heart{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px}
+
+    /* Animations */
+    @keyframes drop {0%{transform:translateY(-30vh) rotate(0deg);opacity:0}10%{opacity:1}100%{transform:translateY(120vh) rotate(360deg);opacity:0}}
+
+    /* Texto fijo decorativo */
+    .overlay-text{position:fixed;left:24px;bottom:24px;z-index:9999;background:linear-gradient(90deg, rgba(255,255,255,0.85), rgba(255,255,255,0.72));padding:14px 18px;border-radius:12px;box-shadow:0 10px 30px rgba(10,10,25,0.12);pointer-events:auto}
+    .overlay-text h2{margin:0;font-family:'Great Vibes',cursive;font-size:28px;color:#d83b70}
+    .overlay-text p{margin:6px 0 0 0;font-size:13px;color:#444}
+
+    /* Control pequeño para detener/activar lluvia */
+    .controls{position:fixed;right:20px;bottom:24px;z-index:9999}
+    .toggle{background:#111;color:#fff;padding:10px 12px;border-radius:10px;border:0;cursor:pointer}
+
+    @media (max-width:560px){.card{padding:20px}.card h1{font-size:34px}.photo{width:94px;height:70px}}
+  </style>
+</head>
+<body>
+
+  <div class="intro-wrap" id="intro">
+    <div class="card">
+      <div class="left">
+        <h1>Para mi persona favorita</h1>
+        <p><strong>Cada uno de estos momentos es un tesoro, un pequeño fragmento de nuestra historia.</strong><br>
+        Gracias por cada risa y aventura a tu lado. Eres la mejor.</p>
+        <div class="actions">
+          <button class="btn" id="startBtn">Ver recuerdos</button>
+          <div class="sub">(También puedes esperar a que la lluvia comience sola)</div>
+        </div>
+      </div>
+      <div class="right" style="width:260px;display:flex;align-items:center;justify-content:center">
+        <!-- Pequeña vista previa decorativa -->
+        <div style="text-align:center">
+          <img src="images/20250201_152919.jpg" alt="preview" style="width:260px;height:180px;object-fit:cover;border-radius:12px;border:3px solid rgba(0,0,0,0.06);box-shadow:0 8px 20px rgba(10,10,25,0.08)">
+          <div style="font-size:12px;color:#666;margin-top:8px">Nuestros recuerdos</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage" aria-hidden="true"></div>
+
+  <div class="overlay-text">
+    <h2>Te quiero 💖</h2>
+    <p>Disfruta nuestros mejores momentos — lluvia de fotos y corazones.</p>
+  </div>
+
+  <div class="controls">
+    <button id="toggle" class="toggle">Detener lluvia</button>
+  </div>
+
+  <script>
+    /* ***********************************************
+       * INSTRUCCIONES:
+       * - Coloca tus fotos en una carpeta "images" al
+       *   lado de este archivo HTML. Nombres usados:
+       *   20250201_152919.jpg
+       *   20250210_142514.jpg
+       *   20250312_141155(0).jpg
+       *   20250312_203452.jpg
+       *   20250412_105351.jpg
+       *   20250201_153248.jpg
+       *   20250210_142529.jpg
+       *   20250301_183506.jpg
+       *   20250412_120231.jpg
+       *   20250312_203540.jpg
+       *   20250412_120231.jpg
+       *   20250412_114944.jpg
+       * - Puedes añadir más nombres al array "images".
+       * ***********************************************/
+
+    const images = [
+      'images/20250201_152919.jpg',
+      'images/20250210_142514.jpg',
+      'images/20250312_141155(0).jpg',
+      'images/20250312_203452.jpg',
+      'images/20250412_105351.jpg',
+      'images/20250201_153248.jpg',
+      'images/20250210_142529.jpg',
+      'images/20250301_183506.jpg',
+      'images/20250412_120231.jpg',
+      'images/20250312_203540.jpg',
+      'images/20250412_120231.jpg',
+      'images/20250412_114944.jpg',
+    ];
+
+    const stage = document.getElementById('stage');
+    const intro = document.getElementById('intro');
+    const startBtn = document.getElementById('startBtn');
+    const toggleBtn = document.getElementById('toggle');
+
+    let raining = true;
+    let spawnInterval;
+
+    function rand(min, max){ return Math.random()*(max-min)+min }
+
+    function makePhoto(x){
+      const wrapper = document.createElement('div');
+      wrapper.className = 'falling';
+      const img = document.createElement('img');
+      img.className = 'photo';
+      img.src = images[Math.floor(Math.random()*images.length)];
+      img.draggable = false;
+      wrapper.style.left = x + 'px';
+      const size = Math.floor(rand(220,280));
+      img.style.width = size + 'px';
+      img.style.height = Math.floor(size*0.72) + 'px';
+      const duration = rand(5,12);
+      wrapper.style.animation = `drop ${duration}s linear forwards`;
+      wrapper.style.animationDelay = '0s';
+      wrapper.style.zIndex = 1000;
+      // slight horizontal swing using transform origin
+      wrapper.style.transform = `translateY(-10vh)`;
+      wrapper.appendChild(img);
+      stage.appendChild(wrapper);
+      // remove after animation
+      setTimeout(()=> wrapper.remove(), (duration+0.6)*1000);
+    }
+
+    function makeHeart(x){
+      const el = document.createElement('div');
+      el.className = 'falling heart';
+      // create heart with emoji (keeps it simple)
+      el.innerText = '❤';
+      el.style.left = x + 'px';
+      el.style.fontSize = Math.floor(rand(16,34)) + 'px';
+      const duration = rand(4.5,9);
+      el.style.animation = `drop ${duration}s cubic-bezier(.2,.8,.2,1) forwards`;
+      el.style.opacity = 0.95;
+      // random color
+      const colors = ['#ff6b9a','#ffd166','#7ee787','#89f7ff','#c39aff'];
+      el.style.color = colors[Math.floor(Math.random()*colors.length)];
+      stage.appendChild(el);
+      setTimeout(()=> el.remove(), (duration+0.6)*1000);
+    }
+
+    function spawnOnce(){
+      // spawn a mix across the width
+      const w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+      const count = Math.floor(rand(2,4));
+      for(let i=0;i<count;i++){
+        const x = rand(0, w-80);
+        // sometimes photo, sometimes heart
+        if(Math.random() < 0.66) makePhoto(x);
+        else makeHeart(x);
+      }
+    }
+
+    function startRain(){
+      if(spawnInterval) clearInterval(spawnInterval);
+      spawnOnce();
+      spawnInterval = setInterval(()=>{
+        if(raining) spawnOnce();
+      }, 900);
+      toggleBtn.innerText = 'Detener lluvia';
+      raining = true;
+    }
+
+    function stopRain(){
+      raining = false;
+      toggleBtn.innerText = 'Iniciar lluvia';
+    }
+
+    // auto start after a short delay
+    window.addEventListener('load', ()=>{
+      setTimeout(()=> startRain(), 1200);
+    });
+
+    startBtn.addEventListener('click', ()=>{
+      // hide intro with a smooth fade
+      intro.style.transition = 'opacity 500ms ease, transform 600ms ease';
+      intro.style.opacity = 0;
+      intro.style.transform = 'scale(0.98) translateY(-12px)';
+      setTimeout(()=> intro.style.display = 'none', 650);
+      // ensure rain running
+      startRain();
+    });
+
+    toggleBtn.addEventListener('click', ()=>{
+      if(raining) stopRain(); else startRain();
+    });
+
+    // Improve performance: remove elements on resize if too many
+    let lastCleanup = Date.now();
+    setInterval(()=>{
+      const now = Date.now();
+      if(now - lastCleanup > 3000){
+        // keep DOM light
+        const nodes = stage.children;
+        if(nodes.length > 120) {
+          for(let i=0;i<40;i++) if(stage.firstChild) stage.removeChild(stage.firstChild);
+        }
+        lastCleanup = now;
+      }
+    }, 1800);
+
+    // Allow clicking any falling photo to pause its motion (small interaction)
+    stage.addEventListener('click', (e)=>{
+      const t = e.target.closest('.falling');
+      if(!t) return;
+      // pause animation for clicked element
+      const running = t.style.animationPlayState !== 'paused';
+      t.style.animationPlayState = running ? 'paused' : 'running';
+    });
+  </script>
+</body>
+</html>
